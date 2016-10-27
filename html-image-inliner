@@ -1,0 +1,70 @@
+#! /usr/bin/env python3
+
+from __future__ import print_function
+from bs4 import BeautifulSoup
+import base64
+import mimetypes
+import os
+import sys
+
+def info(str):
+    "Display an informational string"
+    lines = str.split('\n')
+    print("[INFO] "+lines[0], file=sys.stderr)
+    for line in lines[1:]:
+        print('       '+line, file=sys.stderr)
+
+def warn(str):
+    "Display a warning string"
+    lines = str.split('\n')
+    print("[WARNING] "+lines[0], file=sys.stderr)
+    for line in lines:
+        print('          '+line, file=sys.stderr)
+
+for filename in sys.argv[1:]:
+    with open(filename) as f:
+        info("reading file: %s" % filename)
+        html = "\n".join([line for line in f])
+        soup = BeautifulSoup(html, "html.parser")
+        for img in soup.findAll('img'):
+            src = img['src']
+            if src.startswith('data:image/'):
+                info("image already embedded")
+                continue
+            path = None
+            if src.startswith('/'):
+                # Absolute path: look from current directory
+                path = os.path.join(os.getcwd(), src)
+
+            else:
+                # Relative path: work from file path
+                base = os.path.dirname(os.path.abspath(filename))
+                path = os.path.join(base, src)
+
+            if path == None:
+                warn("couldn't work out what the path was: skipping")
+                continue
+
+            path = os.path.abspath(path)
+            if not os.path.isfile(path):
+                warn("couldn't find path to %s: skipping" % os.path.basename(path))
+                continue
+            
+            # Embed the image
+            with open(path, 'rb') as image:
+                mime, _ = mimetypes.guess_type(path)
+                if mime == None:
+                    warn("couldn't guess the mimetype of %s\nwe really should be able to: skipping" % os.path.basename(path))
+                    continue
+                elif not mime.startswith("image"):
+                    warn("%s doesn't appear to be an image: skipping" % os.path.basename(path))
+                    continue
+
+                data = image.read()
+                b64_data = base64.encodestring(data).decode('ascii').replace('\n', '')
+                img['src'] = "data:"+mime+";base64,"+b64_data
+                info("embedded %s" % os.path.basename(path))
+                
+        # Print the modified HTML
+        print(soup.prettify())
+
