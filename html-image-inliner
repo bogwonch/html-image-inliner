@@ -23,9 +23,8 @@ def warn(str):
 
 for filename in sys.argv[1:]:
     with open(filename) as f:
-        info("reading file: %s" % filename)
         html = "\n".join([line for line in f])
-        soup = BeautifulSoup(html, "html.parser")
+        soup = BeautifulSoup(html, "html5lib")
         for img in soup.findAll('img'):
             src = img['src']
             if src.startswith('data:image/'):
@@ -63,8 +62,8 @@ for filename in sys.argv[1:]:
                 data = image.read()
                 b64_data = base64.encodestring(data).decode('ascii').replace('\n', '')
                 img['src'] = "data:"+mime+";base64,"+b64_data
-                info("embedded %s" % os.path.basename(path))
+                info("embedded %s in %s" % (os.path.basename(path), os.path.basename(filename)))
                 
         # Print the modified HTML
-        print(soup.prettify())
+        print(str(soup))
 
