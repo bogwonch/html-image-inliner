@@ -1,4 +1,4 @@
-# HTML Image Embedder
+# HTML Image Inliner
 
 So it turns out you can embed images in HTML.
 This script goes through an HTML file and tries to embed any images it finds within.
